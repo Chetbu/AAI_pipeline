@@ -1,0 +1,2 @@
+[console_scripts]
+aai-pipeline = aai_pipeline.cli:main

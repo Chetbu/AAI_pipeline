@@ -1,0 +1,19 @@
+[project]
+name = "aai-pipeline"
+version = "0.1.0"
+description = "AI opportunity pipeline: ingest, track, visualize, and query via MCP"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "sqlalchemy>=2.0",
+    "python-dotenv>=1.0",
+    "mcp[cli]>=1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+aai-pipeline = "aai_pipeline.cli:main"

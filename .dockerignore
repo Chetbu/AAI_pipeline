@@ -1,0 +1,11 @@
+.venv/
+.git/
+data/
+input/
+debug/
+frontend/node_modules/
+frontend/dist/
+__pycache__/
+*.pyc
+*.egg-info/
+.python-version
