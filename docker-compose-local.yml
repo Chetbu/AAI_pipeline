@@ -1,18 +1,12 @@
 services:
   app:
     build: .
-    expose:
-      - "8742"              # visible on the Docker network; Traefik connects here
+    ports:
+      - "8742:8742"
     environment:
       DB_PATH: /app/data/pipeline.db
       FRONTEND_DIST: /app/frontend/dist
     volumes:
       # Persist the SQLite database across container restarts
       - ./data:/app/data
-    networks:
-      - aai-public        # ← add this alongside any existing networks
     restart: unless-stopped
-
-networks:
-  aai-public:
-    external: true           # must already exist on the host; Traefik owns it

@@ -16,46 +16,85 @@ A full-stack pipeline for tracking AI sales opportunities. Ingests a daily JSON 
 | Backend | Python 3.13, FastAPI, SQLAlchemy 2.0, SQLite |
 | MCP | FastMCP (streamable HTTP, mounted at `/mcp`) |
 | Frontend | React 18, TypeScript, Vite 8 |
-| Runtime | Docker / docker compose (deployed behind Traefik reverse proxy) |
+| Runtime | Docker / docker compose |
 
 ---
 
-## Getting started
+## Running locally
 
-### With Docker (production — behind Traefik)
+Three options, pick the one that fits:
 
-The container joins the `aai-public` Docker network. Traefik routes traffic to it by hostname over that network — TLS and auth are handled entirely at the Traefik layer.
-
-```bash
-# The aai-public network must already exist on the host (Traefik owns it)
-docker network create aai-public   # skip if it already exists
-
-# Build and start
-docker compose up -d
-
-# Stop
-docker compose down
-```
-
-> The SQLite database is stored in `./data/pipeline.db` and persisted via a bind mount — data survives container restarts.
-
-### Local development (without Docker)
+### Option A — Python directly (fastest for dev)
 
 **Requirements:** Python 3.13, Node 22 (via nvm), uv
 
 ```bash
-# Python setup
+# First-time setup
 uv venv && uv pip install -e .
 
-# Start the API server
+# Start the API + frontend server
 python main.py serve
 # → http://localhost:8742
 
-# Frontend dev server (hot reload, in a separate terminal)
-cd frontend
-nvm use 22
-npm run dev
+# Optional: frontend hot-reload dev server (separate terminal)
+cd frontend && nvm use 22 && npm run dev
 # → http://localhost:5173 (proxies /api to :8742)
+```
+
+### Option B — Docker (local, no Traefik)
+
+Uses `docker-compose-local.yml`, which publishes port 8742 directly to the host. No shared network or Traefik labels needed.
+
+```bash
+docker compose -f docker-compose-local.yml up -d --build
+# → http://localhost:8742
+
+docker compose -f docker-compose-local.yml down
+```
+
+---
+
+## Deploying to the VPS (production)
+
+The production setup runs behind the shared Traefik reverse proxy on the AAI infrastructure. Traefik handles TLS (Let's Encrypt), routing by hostname, and authentication — the app itself does nothing special.
+
+The relevant files for this are `docker-compose.yml`, `Makefile`, and `portal.json`.
+
+### Prerequisites (admin, one-time)
+
+The repo must be cloned under `/opt/aai/projects/` for the Makefile's `SHARED_ENV` path to resolve correctly:
+
+```bash
+cd /opt/aai/projects
+git clone <repo-url> pipeline
+cd pipeline
+cp .env.example .env   # fill in any secrets; create empty file if none needed
+```
+
+### Starting and managing the service
+
+```bash
+make up        # build and start (reads shared.env + .env)
+make ps        # confirm aai-pipeline is "Up"
+make logs      # tail logs
+make restart   # force-recreate (e.g. after a git pull)
+make down      # stop
+```
+
+The app will be reachable at `https://pipeline.<BASE_DOMAIN>` once Traefik picks up the container (a few seconds after `make up`).
+
+### How it integrates with the platform
+
+- `docker-compose.yml` declares `container_name: aai-pipeline`, joins the `aai-public` external network, and carries the 6 Traefik labels that tell the proxy where to route traffic.
+- `Makefile` passes `/opt/aai/shared.env` (which contains `BASE_DOMAIN` and other platform-wide variables) alongside the project's own `.env`.
+- `portal.json` is read by the portal on startup to register the project card automatically — no manual edit of the infrastructure repo needed.
+- The `/health` endpoint is polled every 30 seconds by the portal to display the status badge on the card.
+
+### After a code change
+
+```bash
+git pull
+make restart
 ```
 
 ---
@@ -89,7 +128,7 @@ curl -X POST http://localhost:8742/api/ingest \
 | `POST` | `/api/ingest` | Upload a `results-YYYY-MM-DD.json` file and ingest it |
 | `GET` | `/health` | Health check — returns `{"status": "ok"}` |
 
-Interactive docs: **http://localhost:8742/docs** (local dev) or via your Traefik hostname.
+Interactive docs: `http://localhost:8742/docs` (local) or `https://pipeline.<BASE_DOMAIN>/docs` (production).
 
 ### Opportunity statuses
 
@@ -99,9 +138,9 @@ Interactive docs: **http://localhost:8742/docs** (local dev) or via your Traefik
 
 ## MCP (AI interface)
 
-The MCP server uses the **streamable HTTP** transport, mounted at `/mcp` on the same port as the API.
+The MCP server uses the **streamable HTTP** transport, mounted at `/mcp`.
 
-**Connect from Claude Code** — add a `.mcp.json` file at the project root (already included):
+**Connect from Claude Code** — `.mcp.json` is already included at the project root:
 
 ```json
 {
@@ -114,7 +153,7 @@ The MCP server uses the **streamable HTTP** transport, mounted at `/mcp` on the 
 }
 ```
 
-**Connect from Claude Desktop** — add to your `claude_desktop_config.json`:
+**Connect from Claude Desktop** — add to `claude_desktop_config.json`:
 
 ```json
 {
@@ -155,7 +194,10 @@ AAI_pipeline/
 ├── input/                   # Daily JSON files (gitignored)
 ├── data/                    # SQLite database (gitignored)
 ├── Dockerfile               # Multi-stage: Node 22 build → Python 3.13 runtime
-├── docker-compose.yml       # App service + aai-public network (Traefik integration)
+├── docker-compose.yml       # Production: Traefik labels + aai-public network
+├── docker-compose-local.yml # Local Docker: publishes port 8742 to host
+├── Makefile                 # Production helpers (up / down / restart / logs)
+├── portal.json              # Platform portal registration
 ├── .mcp.json                # Claude Code MCP server declaration
 └── main.py                  # CLI: serve
 ```
@@ -164,7 +206,7 @@ AAI_pipeline/
 
 ## Configuration
 
-Environment variables (set in `docker-compose.yml`, can be overridden):
+Environment variables (set in `docker-compose.yml` / `docker-compose-local.yml`, can be overridden):
 
 | Variable | Default (Docker) | Description |
 |---|---|---|
