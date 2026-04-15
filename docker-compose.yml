@@ -1,6 +1,7 @@
 services:
   app:
     build: .
+    container_name: aai-pipeline
     expose:
       - "8742"              # visible on the Docker network; Traefik connects here
     environment:
