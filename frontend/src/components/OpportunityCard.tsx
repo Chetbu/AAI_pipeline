@@ -11,9 +11,20 @@ interface Props {
 export function OpportunityCard({ opportunity, teamMembers, onUpdate }: Props) {
   const [showDialog, setShowDialog] = useState(false)
 
-  const gttl = opportunity.gttl_current || opportunity.gttl_next
+  const rawGttl = opportunity.gttl_current || opportunity.gttl_next
+  const gttl = (() => {
+    const currency = (rawGttl ?? '').match(/^[^0-9]*/)?.[0] ?? ''
+    const n = parseFloat((rawGttl ?? '').replace(/[^0-9.]/g, ''))
+    if (isNaN(n)) return rawGttl
+    const actual = n * 1000
+    if (actual >= 1_000_000) return `${currency}${(actual / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
+    if (actual >= 1_000) return `${currency}${(actual / 1_000).toFixed(0)}K`
+    return `${currency}${actual}`
+  })()
   const tags = opportunity.ai_tags
-    ? opportunity.ai_tags.replace(/[\[\]]/g, '').split(/\s+/).filter(Boolean)
+    ? opportunity.ai_tags.includes('[')
+      ? [...opportunity.ai_tags.matchAll(/\[([^\]]+)\]/g)].map(m => m[1].trim()).filter(Boolean)
+      : opportunity.ai_tags.split(',').map(t => t.trim()).filter(Boolean)
     : []
 
   return (
