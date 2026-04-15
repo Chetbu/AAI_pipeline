@@ -13,6 +13,16 @@ def cmd_serve(args):
     )
 
 
+def cmd_reset_db(args):
+    from aai_pipeline.database import reset_db, DB_PATH
+    answer = input(f"This will wipe all data in {DB_PATH}. Type 'yes' to confirm: ")
+    if answer.strip().lower() != "yes":
+        print("Aborted.")
+        return
+    reset_db()
+    print("Database reset complete.")
+
+
 def main():
     parser = argparse.ArgumentParser(prog="aai-pipeline")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -22,6 +32,9 @@ def main():
     p_serve.add_argument("--port", type=int, default=8742)
     p_serve.add_argument("--reload", action="store_true")
     p_serve.set_defaults(func=cmd_serve)
+
+    p_reset = sub.add_parser("reset-db", help="Drop and recreate all tables (wipes all data)")
+    p_reset.set_defaults(func=cmd_reset_db)
 
     args = parser.parse_args()
     args.func(args)

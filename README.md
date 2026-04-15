@@ -99,6 +99,27 @@ make restart
 
 ---
 
+## Resetting the database
+
+Drops all tables and recreates them — wipes all data. Requires interactive confirmation.
+
+**Production:**
+```bash
+make reset-db
+```
+
+**Local (Python directly):**
+```bash
+uv run main.py reset-db
+```
+
+**Local (Docker):**
+```bash
+docker exec -it aai-pipeline python main.py reset-db
+```
+
+---
+
 ## JSON ingestion
 
 Files must follow the naming convention `results-YYYY-MM-DD.json`.

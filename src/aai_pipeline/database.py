@@ -28,6 +28,13 @@ def init_db() -> None:
     Base.metadata.create_all(bind=engine)
 
 
+def reset_db() -> None:
+    """Drop all tables and recreate them (wipes all data)."""
+    from aai_pipeline import models  # noqa: F401 — ensure models are registered
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+
 @contextmanager
 def get_session():
     session = SessionLocal()

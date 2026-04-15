@@ -1,6 +1,6 @@
 SHARED_ENV := $(shell cd ../.. && pwd)/shared.env
 
-.PHONY: up down restart logs ps build
+.PHONY: up down restart logs ps build reset-db
 
 up:
 	docker compose --env-file $(SHARED_ENV) --env-file .env up -d --build
@@ -19,3 +19,6 @@ ps:
 
 build:
 	docker compose --env-file $(SHARED_ENV) --env-file .env build --no-cache
+
+reset-db:
+	docker exec -it aai-pipeline python main.py reset-db
