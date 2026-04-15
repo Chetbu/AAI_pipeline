@@ -1,0 +1,8 @@
+{
+  "slug": "pipeline",
+  "name": "Pipeline",
+  "description": "AAI Pipeline for processing and analyzing opportunities",
+  "owner": "Fabien Chazal",
+  "port": 8742,
+  "repo": "https://github.com/Chetbu/AAI_pipeline"
+}
