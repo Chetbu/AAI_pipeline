@@ -14,10 +14,10 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=aai-public"
-      - "traefik.http.routers.aai_pipeline.rule=Host(`aai_pipeline.${BASE_DOMAIN}`)"
-      - "traefik.http.routers.aai_pipeline.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.aai_pipeline.middlewares=tfa@docker,secure-headers@file"
-      - "traefik.http.services.aai_pipeline.loadbalancer.server.port=8742"
+      - "traefik.http.routers.pipeline.rule=Host(`pipeline.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.pipeline.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.pipeline.middlewares=tfa@docker,secure-headers@file"
+      - "traefik.http.services.pipeline.loadbalancer.server.port=8742"
     restart: unless-stopped
 
 networks:
