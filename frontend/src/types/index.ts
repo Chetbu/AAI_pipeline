@@ -19,11 +19,18 @@ export interface Opportunity {
   ai_tags: string | null
   status: OpportunityStatus
   covered_by: string | null
-  notes: string | null
   first_seen_date: string | null
   last_seen_date: string | null
   created_at: string | null
   updated_at: string | null
+}
+
+export interface Comment {
+  id: number
+  opportunity_id: string
+  author: string
+  body: string
+  created_at: string
 }
 
 export interface IngestLog {

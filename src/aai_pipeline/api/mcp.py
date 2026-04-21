@@ -6,7 +6,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 from aai_pipeline.database import get_session
-from aai_pipeline.models import Opportunity, TeamMember
+from aai_pipeline.models import Opportunity, OpportunityComment, TeamMember
 
 mcp = FastMCP(
     "AAI Pipeline",
@@ -47,12 +47,20 @@ def list_opportunities(
 
 @mcp.tool()
 def get_opportunity(opportunity_id: str) -> dict:
-    """Get full details of a single opportunity by its ID."""
+    """Get full details of a single opportunity by its ID, including discussion comments."""
     with get_session() as session:
         opp = session.get(Opportunity, opportunity_id)
         if not opp:
             return {"error": f"No opportunity found with id={opportunity_id}"}
-        return opp.to_dict()
+        data = opp.to_dict()
+        comments = (
+            session.query(OpportunityComment)
+            .filter(OpportunityComment.opportunity_id == opportunity_id)
+            .order_by(OpportunityComment.created_at)
+            .all()
+        )
+        data["comments"] = [c.to_dict() for c in comments]
+        return data
 
 
 @mcp.tool()
@@ -86,9 +94,8 @@ def update_opportunity(
     opportunity_id: str,
     status: Optional[str] = None,
     covered_by: Optional[str] = None,
-    notes: Optional[str] = None,
 ) -> dict:
-    """Update an opportunity's status, assignment, or notes."""
+    """Update an opportunity's status or assignment."""
     from datetime import datetime, timezone
     valid = {"in_crm", "to_be_assigned", "assigned", "completed"}
     if status and status not in valid:
@@ -101,10 +108,27 @@ def update_opportunity(
             opp.status = status
         if covered_by is not None:
             opp.covered_by = covered_by
-        if notes is not None:
-            opp.notes = notes
         opp.updated_at = datetime.now(timezone.utc)
         return opp.to_dict()
+
+
+@mcp.tool()
+def add_comment(opportunity_id: str, author: str, body: str) -> dict:
+    """Add a discussion comment to an opportunity."""
+    if not author.strip() or not body.strip():
+        return {"error": "author and body are required"}
+    with get_session() as session:
+        opp = session.get(Opportunity, opportunity_id)
+        if not opp:
+            return {"error": f"No opportunity found with id={opportunity_id}"}
+        comment = OpportunityComment(
+            opportunity_id=opportunity_id,
+            author=author.strip(),
+            body=body.strip(),
+        )
+        session.add(comment)
+        session.flush()
+        return comment.to_dict()
 
 
 @mcp.tool()

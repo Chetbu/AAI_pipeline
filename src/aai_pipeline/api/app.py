@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from aai_pipeline.database import init_db
-from aai_pipeline.api.routes import opportunities, team, ingest
+from aai_pipeline.api.routes import opportunities, team, ingest, comments
 from aai_pipeline.api.mcp import mcp
 
 # FRONTEND_DIST env var wins (set in Docker); fall back to project-relative path for local dev
@@ -37,6 +37,7 @@ app.add_middleware(
 
 # REST routes
 app.include_router(opportunities.router)
+app.include_router(comments.router)
 app.include_router(team.router)
 app.include_router(ingest.router)
 

@@ -79,6 +79,25 @@ class IngestLog(Base):
         }
 
 
+class OpportunityComment(Base):
+    __tablename__ = "opportunity_comments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    opportunity_id = Column(String, nullable=False, index=True)
+    author = Column(String, nullable=False)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "opportunity_id": self.opportunity_id,
+            "author": self.author,
+            "body": self.body,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
 class TeamMember(Base):
     __tablename__ = "team_members"
 

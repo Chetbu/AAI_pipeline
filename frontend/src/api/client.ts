@@ -1,4 +1,4 @@
-import type { Opportunity, OpportunityStatus, TeamMember, IngestLog } from '../types'
+import type { Opportunity, OpportunityStatus, TeamMember, IngestLog, Comment } from '../types'
 
 async function req<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -25,9 +25,18 @@ export const api = {
       return req<Opportunity[]>(`/api/opportunities${query ? `?${query}` : ''}`)
     },
     get: (id: string) => req<Opportunity>(`/api/opportunities/${id}`),
-    patch: (id: string, data: { status?: OpportunityStatus; covered_by?: string | null; notes?: string | null }) =>
+    patch: (id: string, data: { status?: OpportunityStatus; covered_by?: string | null }) =>
       req<Opportunity>(`/api/opportunities/${id}`, {
         method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+  },
+  comments: {
+    list: (opportunityId: string) =>
+      req<Comment[]>(`/api/opportunities/${opportunityId}/comments`),
+    add: (opportunityId: string, data: { author: string; body: string }) =>
+      req<Comment>(`/api/opportunities/${opportunityId}/comments`, {
+        method: 'POST',
         body: JSON.stringify(data),
       }),
   },

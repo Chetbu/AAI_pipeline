@@ -15,7 +15,6 @@ VALID_STATUSES = {"in_crm", "to_be_assigned", "assigned", "completed"}
 class OpportunityPatch(BaseModel):
     status: Optional[str] = None
     covered_by: Optional[str] = None
-    notes: Optional[str] = None
 
 
 @router.get("")
@@ -59,7 +58,5 @@ def update_opportunity(opportunity_id: str, patch: OpportunityPatch):
             opp.status = patch.status
         if patch.covered_by is not None:
             opp.covered_by = patch.covered_by
-        if patch.notes is not None:
-            opp.notes = patch.notes
         opp.updated_at = datetime.now(timezone.utc)
         return opp.to_dict()

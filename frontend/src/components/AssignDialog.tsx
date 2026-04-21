@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { Opportunity, OpportunityStatus, TeamMember } from '../types'
+import { useState, useEffect } from 'react'
+import type { Opportunity, OpportunityStatus, TeamMember, Comment } from '../types'
 import { api } from '../api/client'
 
 const STATUSES: { id: OpportunityStatus; label: string }[] = [
@@ -8,6 +8,13 @@ const STATUSES: { id: OpportunityStatus; label: string }[] = [
   { id: 'assigned', label: 'Assigned' },
   { id: 'completed', label: 'Completed' },
 ]
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
 
 interface Props {
   opportunity: Opportunity
@@ -19,9 +26,18 @@ interface Props {
 export function AssignDialog({ opportunity, teamMembers, onSave, onClose }: Props) {
   const [status, setStatus] = useState<OpportunityStatus>(opportunity.status)
   const [coveredBy, setCoveredBy] = useState(opportunity.covered_by ?? '')
-  const [notes, setNotes] = useState(opportunity.notes ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [comments, setComments] = useState<Comment[]>([])
+  const [commentAuthor, setCommentAuthor] = useState(teamMembers[0]?.name ?? '')
+  const [commentBody, setCommentBody] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [commentError, setCommentError] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.comments.list(opportunity.id).then(setComments).catch(() => {})
+  }, [opportunity.id])
 
   async function handleSave() {
     setSaving(true)
@@ -30,7 +46,6 @@ export function AssignDialog({ opportunity, teamMembers, onSave, onClose }: Prop
       const updated = await api.opportunities.patch(opportunity.id, {
         status,
         covered_by: coveredBy || null,
-        notes: notes || null,
       })
       onSave(updated)
       onClose()
@@ -38,6 +53,24 @@ export function AssignDialog({ opportunity, teamMembers, onSave, onClose }: Prop
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handlePostComment() {
+    if (!commentAuthor || !commentBody.trim()) return
+    setPosting(true)
+    setCommentError(null)
+    try {
+      const newComment = await api.comments.add(opportunity.id, {
+        author: commentAuthor,
+        body: commentBody.trim(),
+      })
+      setComments((prev) => [...prev, newComment])
+      setCommentBody('')
+    } catch (e) {
+      setCommentError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setPosting(false)
     }
   }
 
@@ -90,16 +123,6 @@ export function AssignDialog({ opportunity, teamMembers, onSave, onClose }: Prop
           </select>
         </label>
 
-        <label>
-          Notes
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            placeholder="Add notes…"
-          />
-        </label>
-
         {error && <p className="dialog-error">{error}</p>}
 
         <div className="dialog-actions">
@@ -107,6 +130,56 @@ export function AssignDialog({ opportunity, teamMembers, onSave, onClose }: Prop
           <button className="btn-primary" onClick={handleSave} disabled={saving}>
             {saving ? 'Saving…' : 'Save'}
           </button>
+        </div>
+
+        <hr />
+
+        <div className="comments-section">
+          <h3 className="comments-title">Discussion</h3>
+
+          {comments.length === 0 ? (
+            <p className="comments-empty">No comments yet.</p>
+          ) : (
+            <div className="comments-list">
+              {comments.map((c) => (
+                <div key={c.id} className="comment">
+                  <div className="comment-meta">
+                    <span className="comment-author">{c.author}</span>
+                    <span className="comment-date">{formatDate(c.created_at)}</span>
+                  </div>
+                  <p className="comment-body">{c.body}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="comment-form">
+            <select
+              value={commentAuthor}
+              onChange={(e) => setCommentAuthor(e.target.value)}
+              disabled={posting}
+            >
+              <option value="">— select author —</option>
+              {teamMembers.map((m) => (
+                <option key={m.id} value={m.name}>{m.name}</option>
+              ))}
+            </select>
+            <textarea
+              value={commentBody}
+              onChange={(e) => setCommentBody(e.target.value)}
+              placeholder="Write a comment…"
+              rows={3}
+              disabled={posting}
+            />
+            {commentError && <p className="dialog-error">{commentError}</p>}
+            <button
+              className="btn-primary"
+              onClick={handlePostComment}
+              disabled={posting || !commentAuthor || !commentBody.trim()}
+            >
+              {posting ? 'Posting…' : 'Post comment'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
