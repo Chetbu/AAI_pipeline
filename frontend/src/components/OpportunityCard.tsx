@@ -5,10 +5,11 @@ import { AssignDialog } from './AssignDialog'
 interface Props {
   opportunity: Opportunity
   teamMembers: TeamMember[]
+  currentUserEmail: string | null
   onUpdate: (updated: Opportunity) => void
 }
 
-export function OpportunityCard({ opportunity, teamMembers, onUpdate }: Props) {
+export function OpportunityCard({ opportunity, teamMembers, currentUserEmail, onUpdate }: Props) {
   const [showDialog, setShowDialog] = useState(false)
 
   const rawGttl = opportunity.gttl_current || opportunity.gttl_next
@@ -58,6 +59,7 @@ export function OpportunityCard({ opportunity, teamMembers, onUpdate }: Props) {
         <AssignDialog
           opportunity={opportunity}
           teamMembers={teamMembers}
+          currentUserEmail={currentUserEmail}
           onSave={onUpdate}
           onClose={() => setShowDialog(false)}
         />

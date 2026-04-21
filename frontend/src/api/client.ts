@@ -42,13 +42,14 @@ export const api = {
   },
   team: {
     list: () => req<TeamMember[]>('/api/team'),
-    create: (name: string, email?: string) =>
+    create: (email: string, name?: string, surname?: string) =>
       req<TeamMember>('/api/team', {
         method: 'POST',
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({ email, name, surname }),
       }),
     delete: (id: number) => req<void>(`/api/team/${id}`, { method: 'DELETE' }),
   },
+  me: () => req<{ email: string; team_member: TeamMember }>('/api/me'),
   ingest: {
     history: () => req<IngestLog[]>('/api/ingest/history'),
     upload: async (file: File): Promise<{ inserted: number; updated: number; file: string }> => {

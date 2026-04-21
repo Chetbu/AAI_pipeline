@@ -10,6 +10,7 @@ export default function App() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [ingestLogs, setIngestLogs] = useState<IngestLog[]>([])
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showTeam, setShowTeam] = useState(false)
@@ -22,14 +23,18 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
-      const [opps, team, logs] = await Promise.all([
+      const [opps, team, logs, meRes] = await Promise.all([
         api.opportunities.list(),
         api.team.list(),
         api.ingest.history(),
+        api.me(),
       ])
       setOpportunities(opps)
-      setTeamMembers(team)
       setIngestLogs(logs)
+      setCurrentUserEmail(meRes.email)
+      // Merge auto-created member in case it was just added by /api/me
+      const memberInList = team.some((m) => m.id === meRes.team_member.id)
+      setTeamMembers(memberInList ? team : [...team, meRes.team_member])
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -113,6 +118,7 @@ export default function App() {
         <KanbanBoard
           opportunities={filtered}
           teamMembers={teamMembers}
+          currentUserEmail={currentUserEmail}
           onUpdate={handleUpdate}
         />
       )}

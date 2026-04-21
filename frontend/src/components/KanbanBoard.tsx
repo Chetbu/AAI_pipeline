@@ -11,10 +11,11 @@ const COLUMNS: { id: OpportunityStatus; label: string; color: string }[] = [
 interface Props {
   opportunities: Opportunity[]
   teamMembers: TeamMember[]
+  currentUserEmail: string | null
   onUpdate: (updated: Opportunity) => void
 }
 
-export function KanbanBoard({ opportunities, teamMembers, onUpdate }: Props) {
+export function KanbanBoard({ opportunities, teamMembers, currentUserEmail, onUpdate }: Props) {
   const byStatus = Object.fromEntries(COLUMNS.map((c) => [c.id, [] as Opportunity[]]))
   for (const opp of opportunities) {
     const bucket = byStatus[opp.status]
@@ -36,6 +37,7 @@ export function KanbanBoard({ opportunities, teamMembers, onUpdate }: Props) {
                 key={opp.id}
                 opportunity={opp}
                 teamMembers={teamMembers}
+                currentUserEmail={currentUserEmail}
                 onUpdate={onUpdate}
               />
             ))}

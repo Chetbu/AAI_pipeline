@@ -442,6 +442,16 @@ body {
   gap: 0.5rem;
 }
 
+.team-email {
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.comment-form-author {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
 .comment-form button {
   align-self: flex-end;
   padding: 0.4rem 1rem;

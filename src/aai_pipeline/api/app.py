@@ -2,12 +2,13 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from aai_pipeline.database import init_db
+from aai_pipeline.database import init_db, get_session
+from aai_pipeline.models import TeamMember
 from aai_pipeline.api.routes import opportunities, team, ingest, comments
 from aai_pipeline.api.mcp import mcp
 
@@ -45,6 +46,21 @@ app.include_router(ingest.router)
 @app.get("/health")
 async def health():
     return JSONResponse({"status": "ok"})
+
+# Returns the authenticated user's email injected by Traefik.
+# Falls back to DEV_USER env var (default: test@localhost.com) when header is absent (local dev).
+_DEV_USER = os.environ.get("DEV_USER", "test@localhost.com")
+
+@app.get("/api/me")
+async def me(request: Request):
+    email = request.headers.get("x-forwarded-user") or _DEV_USER
+    with get_session() as session:
+        member = session.query(TeamMember).filter(TeamMember.email == email).first()
+        if not member:
+            member = TeamMember(email=email)
+            session.add(member)
+            session.flush()
+        return {"email": email, "team_member": member.to_dict()}
 
 # MCP streamable HTTP endpoint — LLM clients connect to /mcp
 app.mount("/mcp", _mcp_app)

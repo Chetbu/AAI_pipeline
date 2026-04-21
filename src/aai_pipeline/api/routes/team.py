@@ -10,23 +10,31 @@ router = APIRouter(prefix="/api/team", tags=["team"])
 
 
 class TeamMemberCreate(BaseModel):
-    name: str
-    email: Optional[str] = None
+    email: str
+    name: Optional[str] = None
+    surname: Optional[str] = None
 
 
 @router.get("")
 def list_team():
     with get_session() as session:
-        return [m.to_dict() for m in session.query(TeamMember).order_by(TeamMember.name).all()]
+        members = session.query(TeamMember).all()
+        members.sort(key=lambda m: (m.name or m.email).lower())
+        return [m.to_dict() for m in members]
 
 
 @router.post("", status_code=201)
 def create_team_member(body: TeamMemberCreate):
+    if not body.email.strip():
+        raise HTTPException(status_code=422, detail="email is required")
     with get_session() as session:
-        existing = session.query(TeamMember).filter(TeamMember.name == body.name).first()
-        if existing:
-            raise HTTPException(status_code=409, detail="Team member with this name already exists")
-        member = TeamMember(name=body.name, email=body.email)
+        if session.query(TeamMember).filter(TeamMember.email == body.email.strip()).first():
+            raise HTTPException(status_code=409, detail="Team member with this email already exists")
+        member = TeamMember(
+            email=body.email.strip(),
+            name=body.name.strip() if body.name else None,
+            surname=body.surname.strip() if body.surname else None,
+        )
         session.add(member)
         session.flush()
         return member.to_dict()

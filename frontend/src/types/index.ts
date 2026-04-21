@@ -44,6 +44,12 @@ export interface IngestLog {
 
 export interface TeamMember {
   id: number
-  name: string
-  email: string | null
+  email: string
+  name: string | null
+  surname: string | null
+}
+
+/** Returns "First Last" if set, otherwise the email. */
+export function memberDisplayName(m: TeamMember): string {
+  return [m.name, m.surname].filter(Boolean).join(' ') || m.email
 }

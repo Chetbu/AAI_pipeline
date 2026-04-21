@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from contextlib import contextmanager
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 # DB_PATH env var wins (set in Docker); fall back to project-relative path for local dev
@@ -22,10 +22,24 @@ class Base(DeclarativeBase):
 
 
 def init_db() -> None:
-    """Create all tables if they don't exist."""
+    """Create all tables if they don't exist, and run lightweight column migrations."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     from aai_pipeline import models  # noqa: F401 — ensure models are registered
     Base.metadata.create_all(bind=engine)
+    _migrate()
+
+
+def _migrate() -> None:
+    """Apply additive SQLite migrations that create_all cannot handle."""
+    with engine.connect() as conn:
+        columns = {row[1] for row in conn.execute(text("PRAGMA table_info(team_members)"))}
+        if "surname" not in columns:
+            conn.execute(text("ALTER TABLE team_members ADD COLUMN surname TEXT"))
+        conn.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_team_members_email_unique"
+            " ON team_members (email)"
+        ))
+        conn.commit()
 
 
 def reset_db() -> None:

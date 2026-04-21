@@ -102,8 +102,14 @@ class TeamMember(Base):
     __tablename__ = "team_members"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String, unique=True, nullable=False)
-    email = Column(String)
+    email = Column(String, unique=True, nullable=False)
+    name = Column(String)
+    surname = Column(String)
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "name": self.name, "email": self.email}
+        return {
+            "id": self.id,
+            "email": self.email,
+            "name": self.name,
+            "surname": self.surname,
+        }

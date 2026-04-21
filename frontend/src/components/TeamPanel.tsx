@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { TeamMember } from '../types'
+import { memberDisplayName } from '../types'
 import { api } from '../api/client'
 
 interface Props {
@@ -8,18 +9,28 @@ interface Props {
 }
 
 export function TeamPanel({ members, onChange }: Props) {
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [surname, setSurname] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   async function handleAdd() {
-    if (!name.trim()) return
+    if (!email.trim()) return
     setError(null)
     try {
-      const member = await api.team.create(name.trim(), email.trim() || undefined)
-      onChange([...members, member].sort((a, b) => a.name.localeCompare(b.name)))
-      setName('')
+      const member = await api.team.create(
+        email.trim(),
+        name.trim() || undefined,
+        surname.trim() || undefined,
+      )
+      onChange(
+        [...members, member].sort((a, b) =>
+          memberDisplayName(a).localeCompare(memberDisplayName(b))
+        )
+      )
       setEmail('')
+      setName('')
+      setSurname('')
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
@@ -40,22 +51,31 @@ export function TeamPanel({ members, onChange }: Props) {
       <ul className="team-list">
         {members.map((m) => (
           <li key={m.id}>
-            <span>{m.name}{m.email ? ` (${m.email})` : ''}</span>
+            <span>
+              {memberDisplayName(m)}
+              {(m.name || m.surname) && <span className="team-email"> ({m.email})</span>}
+            </span>
             <button className="btn-danger-sm" onClick={() => handleDelete(m.id)}>✕</button>
           </li>
         ))}
       </ul>
       <div className="team-add">
         <input
-          placeholder="Name"
+          placeholder="Email *"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+        />
+        <input
+          placeholder="First name (optional)"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
         />
         <input
-          placeholder="Email (optional)"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Last name (optional)"
+          value={surname}
+          onChange={(e) => setSurname(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
         />
         <button className="btn-primary" onClick={handleAdd}>Add</button>

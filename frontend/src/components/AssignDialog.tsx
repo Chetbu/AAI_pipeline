@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Opportunity, OpportunityStatus, TeamMember, Comment } from '../types'
+import { memberDisplayName } from '../types'
 import { api } from '../api/client'
 
 const STATUSES: { id: OpportunityStatus; label: string }[] = [
@@ -19,18 +20,19 @@ function formatDate(iso: string): string {
 interface Props {
   opportunity: Opportunity
   teamMembers: TeamMember[]
+  currentUserEmail: string | null
   onSave: (updated: Opportunity) => void
   onClose: () => void
 }
 
-export function AssignDialog({ opportunity, teamMembers, onSave, onClose }: Props) {
+export function AssignDialog({ opportunity, teamMembers, currentUserEmail, onSave, onClose }: Props) {
   const [status, setStatus] = useState<OpportunityStatus>(opportunity.status)
   const [coveredBy, setCoveredBy] = useState(opportunity.covered_by ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [comments, setComments] = useState<Comment[]>([])
-  const [commentAuthor, setCommentAuthor] = useState(teamMembers[0]?.name ?? '')
+  const [commentAuthor] = useState(currentUserEmail ?? '')
   const [commentBody, setCommentBody] = useState('')
   const [posting, setPosting] = useState(false)
   const [commentError, setCommentError] = useState<string | null>(null)
@@ -118,7 +120,7 @@ export function AssignDialog({ opportunity, teamMembers, onSave, onClose }: Prop
           <select value={coveredBy} onChange={(e) => setCoveredBy(e.target.value)}>
             <option value="">— unassigned —</option>
             {teamMembers.map((m) => (
-              <option key={m.id} value={m.name}>{m.name}</option>
+              <option key={m.id} value={memberDisplayName(m)}>{memberDisplayName(m)}</option>
             ))}
           </select>
         </label>
@@ -154,16 +156,7 @@ export function AssignDialog({ opportunity, teamMembers, onSave, onClose }: Prop
           )}
 
           <div className="comment-form">
-            <select
-              value={commentAuthor}
-              onChange={(e) => setCommentAuthor(e.target.value)}
-              disabled={posting}
-            >
-              <option value="">— select author —</option>
-              {teamMembers.map((m) => (
-                <option key={m.id} value={m.name}>{m.name}</option>
-              ))}
-            </select>
+            <span className="comment-form-author">Posting as <strong>{commentAuthor}</strong></span>
             <textarea
               value={commentBody}
               onChange={(e) => setCommentBody(e.target.value)}
